@@ -16,24 +16,23 @@ app.use(
   })
 )
 
-// AUTH middleware
-app.use('/customer/auth/*', function (req, res, next) {
-  const authHeader = req.headers.authorization
-  if (!authHeader) return res.status(401).send('No token')
-
-  const token = authHeader.split(' ')[1]
+app.use('/customer/auth/*', function auth(req, res, next) {
+  const token = req.header('Authorization').replace('Bearer ', '')
+  if (!token) return res.status(401).send('Access Denied: No Token Provided!')
 
   try {
-    jwt.verify(token, 'fingerprint_customer')
+    const verified = jwt.verify(token, 'fingerprint_customer')
+    req.user = verified
     next()
-  } catch {
-    return res.status(401).send('Invalid token')
+  } catch (err) {
+    res.status(400).send('Invalid Token')
   }
 })
 
 app.use('/customer', customer_routes)
 app.use('/', genl_routes)
 
-app.listen(5000, () => {
-  console.log('Server running on http://localhost:5000')
-})
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () =>
+  console.log(`Server is running in http://localhost:${PORT}/`)
+)
